@@ -1,0 +1,59 @@
+-
+  hosts: webserver
+  tasks:
+    -
+      name: 'Deploy python scripts to production server'
+      copy: 
+        src: /source/case_study2.py
+        dest: /home/sparshi/
+        owner: sparshi
+        group: sparshi
+        mode: 777
+-
+  hosts: webserver
+  name: 'Create Docker Container'
+  connection: local
+  remote_user: sparshi
+  tasks:
+    -
+      name: 'Create Container'
+      docker_container:
+        name: Anaconda_Python
+        image: continuumio/anaconda3
+        ports:
+          - '1433:1433'
+        privileged: 'true'
+    -
+      name: 'Create Systemd Unit File as docker-Anaconda_Python.service'
+      template: 'src=systemd.j2 dest=/etc/systemd/system/docker-Anaconda_Python.service'
+    -
+      name: 'reload systemd daemon'
+      command: 'systemctl daemon-reload'
+    -
+      name: 'Start & Enable docker-Anaconda_Python service'
+      service:
+        name: docker-Anaconda_Python
+        state: started
+        enabled: yes
+    -
+      name: 'check container status'
+      command: 'docker ps'
+      register: result
+    -
+      name: 'run docker container'
+      command: 'docker run –it continuumio/anaconda3 /bin/bash'
+    -
+      name: 'create virtual conda environment'
+      command: 'conda create --name myenv python=3'
+    -
+      name: 'activate virtual conda environment'
+      command: 'source activate myenv'
+    -
+      name: 'run python script'
+      command: 'python3 /home/sparshi/case_study2.py'
+      register: result1
+-
+  hosts: webserver
+  tasks:
+    -
+      debug: var=result1.stdout_lines

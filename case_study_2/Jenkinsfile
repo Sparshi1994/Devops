@@ -1,0 +1,100 @@
+#!/usr/bin/env groovy
+
+/**
+ * Jenkinsfile
+ */
+pipeline {
+    agent any
+	
+	environment {
+	
+		PATH="/var/lib/jenkins/anaconda3/bin:$PATH"
+    }
+        
+    stages {
+        
+        stage ('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+        			
+		
+        stage ('Build') {
+		
+            steps {
+			
+				sh '''conda create --yes -n ${BUILD_TAG} python
+                      source activate ${BUILD_TAG} 
+                      pip install --upgrade pip
+					  pip install unittest-xml-reporting
+					  pip install pep8
+					  pip install pylint
+                    '''
+            }
+			
+		}
+
+		stage('Static code metrics') {
+		
+            steps {
+			
+                echo "PEP8 style check"
+                sh  ''' source activate ${BUILD_TAG}
+                        pylint --disable=C --output-format='text' -rn source/case_study2.py || true
+                    '''
+            }
+			
+        }
+		
+		stage('Unit tests') {
+            
+			steps {
+			
+                sh  ''' source activate ${BUILD_TAG}
+                        python3 source/casestudy2_test.py
+                    '''
+            }
+			
+			post {
+                always {
+                    // Archive unit tests for the future
+                    archiveArtifacts (allowEmptyArchive: true,
+                                     artifacts: 'test-reports/',
+                                     fingerprint: true)
+                }
+            }
+	
+        }
+		
+		stage('deploy') {
+		
+			steps {
+			
+				ansiblePlaybook colorized: true,
+				credentialsId: 'e12538f6-afb0-424e-9375-c57027127412',
+				disableHostKeyChecking: true,
+				inventory: 'inventory.ini',
+				playbook: 'playbook.yml', 
+				sudo: true,
+				sudoUser: 'sparshi'
+			}
+		}	
+    }
+
+    post {
+	
+        always {
+            sh 'conda remove --yes -n ${BUILD_TAG} --all'
+        }
+        failure {
+            emailext (
+                subject: "FAILED: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]'",
+                body: """<p>FAILED: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]':</p>
+                         <p>Check console output at &QUOT;<a href='${env.BUILD_URL}'>${env.JOB_NAME} [${env.BUILD_NUMBER}]</a>&QUOT;</p>""",
+                recipientProviders: [[$class: 'DevelopersRecipientProvider']]
+            )
+        }
+    }
+    
+}

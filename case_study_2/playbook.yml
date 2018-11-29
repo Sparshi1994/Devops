@@ -4,7 +4,7 @@
     -
       name: 'Deploy python scripts to production server'
       copy: 
-        src: /source/case_study2.py
+        src: /case_study_2/source/case_study2.py
         dest: /home/sparshi/
         owner: sparshi
         group: sparshi

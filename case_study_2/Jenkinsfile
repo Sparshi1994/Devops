@@ -41,7 +41,7 @@ pipeline {
 			
                 echo "PEP8 style check"
                 sh  ''' source activate ${BUILD_TAG}
-                        pylint --disable=C --output-format='text' -rn source/case_study2.py || true
+                        pylint --disable=C --output-format='text' -rn case_study_2/source/case_study2.py || true
                     '''
             }
 			
@@ -52,7 +52,7 @@ pipeline {
 			steps {
 			
                 sh  ''' source activate ${BUILD_TAG}
-                        python3 source/casestudy2_test.py
+                        python3 case_study_2/source/casestudy2_test.py
                     '''
             }
 			
@@ -74,8 +74,8 @@ pipeline {
 				ansiblePlaybook colorized: true,
 				credentialsId: 'e12538f6-afb0-424e-9375-c57027127412',
 				disableHostKeyChecking: true,
-				inventory: 'inventory.ini',
-				playbook: 'playbook.yml', 
+				inventory: 'case_study_2/inventory.ini',
+				playbook: 'case_study_2/playbook.yml', 
 				sudo: true,
 				sudoUser: 'sparshi'
 			}
